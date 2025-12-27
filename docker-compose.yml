@@ -1,0 +1,65 @@
+version: '3.8'
+
+services:
+  rabbitmq:
+    image: masstransit/rabbitmq:latest
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      - RABBITMQ_DEFAULT_USER=guest
+      - RABBITMQ_DEFAULT_PASS=guest
+
+  postgres-orders:
+    image: postgres:15-alpine
+    environment:
+      - POSTGRES_DB=orders_db
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+    ports:
+      - "5432:5432"
+
+  postgres-payments:
+    image: postgres:15-alpine
+    environment:
+      - POSTGRES_DB=payments_db
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+    ports:
+      - "5433:5432"
+
+  orders-service:
+    build:
+      context: ./Gozon.Orders/Gozon.Orders
+      dockerfile: Dockerfile
+    ports:
+      - "5000:8080"
+    environment:
+      - ConnectionStrings__DefaultConnection=Host=postgres-orders;Database=orders_db;Username=postgres;Password=postgres
+      - RabbitMq__Host=rabbitmq
+    depends_on:
+      - rabbitmq
+      - postgres-orders
+
+  payments-service:
+    build:
+      context: ./Gozon.Payments/Gozon.Payments
+      dockerfile: Dockerfile
+    ports:
+      - "5001:8080"
+    environment:
+      - ConnectionStrings__DefaultConnection=Host=postgres-payments;Database=payments_db;Username=postgres;Password=postgres
+      - RabbitMq__Host=rabbitmq
+    depends_on:
+      - rabbitmq
+      - postgres-payments
+
+  api-gateway:
+    build:
+      context: ./Gozon.Gateway/Gozon.Gateway
+      dockerfile: Dockerfile
+    ports:
+      - "8080:80"
+    depends_on:
+      - orders-service
+      - payments-service

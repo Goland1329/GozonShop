@@ -1,0 +1,8 @@
+.vs/
+**/bin/
+**/obj/
+*.user
+[Dd]ebug/
+[Rr]elease/
+.idea/
+*.suo
